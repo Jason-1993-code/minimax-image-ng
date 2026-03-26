@@ -6,7 +6,7 @@
   "version": "1.0.0",
   "providers": ["minimax-image"],
   "providerAuthEnvVars": {
-    "minimax-image": ["MINIMAX_IMAGE_API_KEY"]
+    "minimax-image": ["MINIMAX_IMAGE_API_KEY", "MINIMAX_API_KEY"]
   },
   "providerAuthChoices": [
     {
@@ -38,6 +38,13 @@
       "onboardingScopes": ["image-generation"]
     }
   ],
+  "uiHints": {
+    "apiKey": {
+      "label": "API Key",
+      "placeholder": "your-api-key",
+      "sensitive": true
+    }
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -81,7 +88,14 @@
       },
       "style": {
         "type": "string",
-        "description": "Style parameter (only for image-01-live model)"
+        "description": "Style type (only for image-01-live). Values: 漫画, 元气, 中世纪, 水彩"
+      },
+      "styleWeight": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.8,
+        "description": "Style weight (only for image-01-live, 0-1)"
       },
       "width": {
         "type": "integer",

@@ -369,7 +369,27 @@ describe("MiniMax Image Generation", () => {
 
       const call = mockFetch.mock.calls[0];
       const body = JSON.parse(call[1].body);
-      expect(body.style).toBe("anime");
+      expect(body.style).toEqual({ style_type: "anime" });
+    });
+
+    it("should include style with weight for image-01-live model", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_urls: [] } }),
+      });
+
+      try {
+        await generateImage(
+          { prompt: "a cat" },
+          { model: "image-01-live", style: "漫画", styleWeight: 0.5 },
+          "test-key"
+        );
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.style).toEqual({ style_type: "漫画", style_weight: 0.5 });
     });
 
     it("should include width/height for image-01 model", async () => {

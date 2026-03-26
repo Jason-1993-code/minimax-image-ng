@@ -20,6 +20,7 @@ export interface MiniMaxImageConfig {
   promptOptimizer: boolean;
   aigcWatermark: boolean;
   style?: string;
+  styleWeight?: number;
   width?: number;
   height?: number;
   seed?: number;
@@ -55,11 +56,11 @@ interface ImageGenerationGeometryCapabilities {
 const ERROR_MESSAGES: Record<number, string> = {
   0: "success",
   1002: "rate limit exceeded",
-  1004: "invalid request parameters",
+  1004: "authentication failed",
   1008: "insufficient account balance",
   1026: "content policy violation",
-  2013: "authentication failed",
-  2049: "content moderation failed",
+  2013: "invalid request parameters",
+  2049: "invalid api key",
 };
 
 const ENDPOINTS = {
@@ -288,7 +289,11 @@ export async function generateImage(
   };
 
   if (miniConfig.style && effectiveModel === "image-01-live") {
-    body.style = miniConfig.style;
+    const style: Record<string, unknown> = { style_type: miniConfig.style };
+    if (miniConfig.styleWeight !== undefined) {
+      style.style_weight = miniConfig.styleWeight;
+    }
+    body.style = style;
   }
   
   if (req.aspectRatio) {
@@ -352,6 +357,11 @@ export async function generateImage(
       url?: string;
       base64?: string;
     }>;
+    metadata?: {
+      success_count?: number | string;
+      failed_count?: number | string;
+    };
+    id?: string;
     base_resp?: {
       status_code: number;
       status_msg: string;
@@ -368,7 +378,6 @@ export async function generateImage(
   }
 
   const images: GeneratedImageAsset[] = [];
-  const requestedCount = (req.count || miniConfig.n);
 
   if (data.data?.image_urls && data.data.image_urls.length > 0) {
     for (const imageUrl of data.data.image_urls) {
@@ -411,6 +420,13 @@ export async function generateImage(
       endpoint: miniConfig.endpoint,
       aspectRatio: finalAspectRatio,
       count: images.length,
+      successCount: typeof data.metadata?.success_count === "number"
+        ? data.metadata.success_count
+        : images.length,
+      failedCount: typeof data.metadata?.failed_count === "number"
+        ? data.metadata.failed_count
+        : 0,
+      taskId: data.id,
       agentDir: req.agentDir,
       hasOpenClawConfig: Boolean(req.cfg),
     },

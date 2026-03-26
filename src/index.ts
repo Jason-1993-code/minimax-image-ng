@@ -22,6 +22,7 @@ export interface MiniMaxImagePluginConfig {
   promptOptimizer?: boolean;
   aigcWatermark?: boolean;
   style?: string;
+  styleWeight?: number;
   width?: number;
   height?: number;
   seed?: number;
@@ -36,7 +37,6 @@ export default definePluginEntry({
     const provider: ImageGenerationProvider = {
       id: "minimax-image",
       label: "MiniMax Image",
-      aliases: ["minimax"],
       defaultModel: "image-01",
       models: ["image-01", "image-01-live"],
       capabilities: CAPABILITIES,
@@ -62,6 +62,9 @@ export default definePluginEntry({
 
         if (pluginConfig?.style) {
           config.style = pluginConfig.style;
+        }
+        if (pluginConfig?.styleWeight !== undefined) {
+          config.styleWeight = pluginConfig.styleWeight;
         }
         if (pluginConfig?.width) {
           config.width = pluginConfig.width;
