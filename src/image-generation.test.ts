@@ -425,6 +425,53 @@ describe("MiniMax Image Generation", () => {
       expect(body.seed).toBe(12345);
     });
 
+    it("should use CN endpoint URL when endpoint is cn", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_urls: [] } }),
+      });
+
+      try {
+        await generateImage({ prompt: "a cat" }, { endpoint: "cn" }, "test-key");
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      expect(call[0]).toBe("https://api.minimaxi.com/v1/image_generation");
+    });
+
+    it("should include prompt_optimizer: true when enabled in config", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_urls: [] } }),
+      });
+
+      try {
+        await generateImage({ prompt: "a cat" }, { promptOptimizer: true }, "test-key");
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.prompt_optimizer).toBe(true);
+    });
+
+    it("should include aigc_watermark: true when enabled in config", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_urls: [] } }),
+      });
+
+      try {
+        await generateImage({ prompt: "a cat" }, { aigcWatermark: true }, "test-key");
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.aigc_watermark).toBe(true);
+    });
+
     it("should use auth profile key when env and config key are not set", async () => {
       vi.stubEnv("MINIMAX_IMAGE_API_KEY", "");
       returnValueHolder.value = ["auth-profile-1"];
@@ -516,6 +563,59 @@ describe("MiniMax Image Generation", () => {
       const result = await generateImage({ prompt: "a cat" }, {}, "test-key");
 
       expect(result.images).toHaveLength(1);
+    });
+
+    it("should parse successCount and failedCount from metadata", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: {
+                image_urls: ["https://example.com/image1.png", "https://example.com/image2.png"],
+              },
+              metadata: {
+                success_count: 2,
+                failed_count: 0,
+              },
+              id: "task-12345",
+              base_resp: { status_code: 0, status_msg: "success" },
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: { get: () => "image/png" },
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(10)),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: { get: () => "image/png" },
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(10)),
+        });
+
+      const result = await generateImage({ prompt: "a cat" }, { responseFormat: "url" }, "test-key");
+
+      expect(result.metadata.successCount).toBe(2);
+      expect(result.metadata.failedCount).toBe(0);
+      expect(result.metadata.taskId).toBe("task-12345");
+    });
+
+    it("should use images.length as successCount fallback when metadata not provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: {
+              image_base64: ["SGVsbG8gV29ybGQ=", "SGVsbG8gV29ybGQx"],
+            },
+            base_resp: { status_code: 0, status_msg: "success" },
+          }),
+      });
+
+      const result = await generateImage({ prompt: "a cat" }, { responseFormat: "base64" }, "test-key");
+
+      expect(result.metadata.successCount).toBe(2);
+      expect(result.metadata.failedCount).toBe(0);
     });
 
     it("should throw when no images returned", async () => {
