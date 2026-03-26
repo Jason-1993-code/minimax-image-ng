@@ -81,6 +81,60 @@ const DEFAULT_CONFIG: MiniMaxImageConfig = {
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
+const ASPECT_RATIOS: Array<{ ratio: number; value: string }> = [
+  { ratio: 1.0,     value: "1:1" },
+  { ratio: 16 / 9,  value: "16:9" },
+  { ratio: 4 / 3,   value: "4:3" },
+  { ratio: 3 / 2,   value: "3:2" },
+  { ratio: 2 / 3,   value: "2:3" },
+  { ratio: 3 / 4,   value: "3:4" },
+  { ratio: 9 / 16,  value: "9:16" },
+  { ratio: 21 / 9,  value: "21:9" },
+];
+
+function mapToClosestAspectRatio(width: number, height: number): string {
+  const actual = width / height;
+  let closest = ASPECT_RATIOS[0];
+  let minDiff = Math.abs(actual - closest.ratio);
+
+  for (const ar of ASPECT_RATIOS) {
+    const diff = Math.abs(actual - ar.ratio);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = ar;
+    }
+  }
+
+  return closest.value;
+}
+
+function getImageDimensions(buffer: Buffer): { width: number; height: number } | null {
+  if (buffer.length < 24) return null;
+
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    const width = buffer.readUInt32BE(16);
+    const height = buffer.readUInt32BE(20);
+    return { width, height };
+  }
+
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+    let offset = 2;
+    while (offset < buffer.length - 1) {
+      if (buffer[offset] !== 0xFF) break;
+      const marker = buffer[offset + 1];
+      if (marker === 0xC0 || marker === 0xC2) {
+        const height = buffer.readUInt16BE(offset + 5);
+        const width = buffer.readUInt16BE(offset + 7);
+        return { width, height };
+      }
+      const length = buffer.readUInt16BE(offset + 2);
+      offset += 2 + length;
+    }
+  }
+
+  return null;
+}
+
 function detectMimeType(base64: string): string {
   const bytes = Buffer.from(base64.slice(0, 24), "base64");
   if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
@@ -136,6 +190,8 @@ export const CAPABILITIES: {
   },
   edit: {
     enabled: true,
+    supportsResolution: true,
+    supportsAspectRatio: true,
   },
   geometry: {
     aspectRatios: ["1:1", "16:9", "4:3", "3:2", "2:3", "3:4", "9:16", "21:9"],
@@ -271,10 +327,10 @@ export async function generateImage(
     }
   }
 
-  if (req.size) {
+  if (req.size && !req.inputImages?.length) {
     throw new Error("size parameter is not supported for text-to-image generation");
   }
-  if (req.resolution) {
+  if (req.resolution && !req.inputImages?.length) {
     throw new Error("resolution parameter is not supported for text-to-image generation");
   }
 
@@ -312,6 +368,12 @@ export async function generateImage(
   }
 
   if (req.inputImages && req.inputImages.length > 0) {
+    const firstImage = req.inputImages[0];
+    const inferredDimensions = getImageDimensions(firstImage.buffer);
+    if (inferredDimensions) {
+      body.aspect_ratio = mapToClosestAspectRatio(inferredDimensions.width, inferredDimensions.height);
+    }
+
     body.subject_reference = req.inputImages.map(img => {
       const mimeType = (img.mimeType || "image/png").toLowerCase();
       if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {

@@ -131,6 +131,35 @@ describe("MiniMax Image Generation", () => {
       ).rejects.toThrow("Image size exceeds 10MB limit");
     });
 
+        it("should infer aspect_ratio from inputImages dimensions (16:9 for 1920x1080)", async () => {
+      const pngHeader = Buffer.from([
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+        0x00, 0x00, 0x00, 0x0D, // IHDR length
+        0x49, 0x48, 0x44, 0x52, // IHDR chunk type
+        0x00, 0x00, 0x07, 0x80, // width: 1920
+        0x00, 0x00, 0x04, 0x38, // height: 1080
+        0x08, 0x02, 0x00, 0x00, 0x00, // bit depth, color type, compression, filter, interlace
+        0x00, 0x00, 0x00, 0x00, // CRC (placeholder)
+      ]);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_base64: ["SGVsbG8gV29ybGQ="] } }),
+      });
+
+      try {
+        await generateImage(
+          { prompt: "transform this", inputImages: [{ buffer: pngHeader, mimeType: "image/png" }] },
+          {},
+          "test-key"
+        );
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.aspect_ratio).toBe("16:9");
+    });
+
     it("should throw when width is provided without height", async () => {
       await expect(
         generateImage(
@@ -719,8 +748,10 @@ describe("MiniMax Image Generation", () => {
       expect(CAPABILITIES.generate.supportsAspectRatio).toBe(true);
     });
 
-    it("should have edit enabled", () => {
+    it("should have edit enabled with resolution and aspect ratio support", () => {
       expect(CAPABILITIES.edit.enabled).toBe(true);
+      expect(CAPABILITIES.edit.supportsResolution).toBe(true);
+      expect(CAPABILITIES.edit.supportsAspectRatio).toBe(true);
     });
 
     it("should have correct aspect ratios", () => {
@@ -732,7 +763,6 @@ describe("MiniMax Image Generation", () => {
   describe("manifest metadata", () => {
     const manifest: Record<string, any> = {
       id: "minimax-image",
-      kind: "provider",
       providers: ["minimax-image"],
       providerAuthChoices: [
         {
@@ -754,8 +784,8 @@ describe("MiniMax Image Generation", () => {
       ],
     };
 
-    it("should have kind=provider", () => {
-      expect(manifest.kind).toBe("provider");
+    it("should not have kind field (not a valid value for plugins)", () => {
+      expect(manifest.kind).toBeUndefined();
     });
 
     it("should have providers array containing minimax-image", () => {
