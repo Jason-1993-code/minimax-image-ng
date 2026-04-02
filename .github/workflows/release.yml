@@ -51,15 +51,4 @@ jobs:
             "minimax-image-ng-${VERSION}.zip" \
             "minimax-image-ng-${VERSION}.tar.gz"
 
-      - name: Install clawhub
-        run: npm install -g clawhub
 
-      - name: Publish to ClawHub
-        env:
-          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
-        run: |
-          clawhub login --token $CLAWHUB_TOKEN
-          clawhub package publish . \
-            --source-repo Jason-1993-code/minimax-image-ng \
-            --source-commit ${{ github.sha }} \
-            --version ${{ github.ref_name }}
