@@ -13,6 +13,7 @@ describe("MiniMax Image Generation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("MINIMAX_IMAGE_API_KEY", "");
+    vi.stubEnv("MINIMAX_API_KEY", "");
     returnValueHolder.value = [];
   });
 
@@ -34,6 +35,18 @@ describe("MiniMax Image Generation", () => {
     it("should prefer env over config", () => {
       vi.stubEnv("MINIMAX_IMAGE_API_KEY", "env-api-key");
       expect(resolveApiKey("config-api-key")).toBe("env-api-key");
+    });
+
+    it("should fall back to MINIMAX_API_KEY when MINIMAX_IMAGE_API_KEY is not set", () => {
+      vi.stubEnv("MINIMAX_IMAGE_API_KEY", "");
+      vi.stubEnv("MINIMAX_API_KEY", "shared-api-key");
+      expect(resolveApiKey("config-api-key")).toBe("shared-api-key");
+    });
+
+    it("should prefer MINIMAX_IMAGE_API_KEY over MINIMAX_API_KEY", () => {
+      vi.stubEnv("MINIMAX_IMAGE_API_KEY", "image-specific-key");
+      vi.stubEnv("MINIMAX_API_KEY", "shared-key");
+      expect(resolveApiKey("config-api-key")).toBe("image-specific-key");
     });
 
     it("should prefer config over auth profile when env is not set", () => {
@@ -251,27 +264,14 @@ describe("MiniMax Image Generation", () => {
       ).rejects.toThrow("height must be between 512 and 2048, and divisible by 8");
     });
 
-    it("should silently ignore width/height for image-01-live model", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: { image_base64: ["SGVsbG8gV29ybGQ="] } }),
-      });
-
-      try {
-        await generateImage(
+    it("should throw when image-01-live uses width/height (only image-01 supports them)", async () => {
+      await expect(
+        generateImage(
           { prompt: "test" },
           { model: "image-01-live", width: 1024, height: 1024 },
           "test-key"
-        );
-      } catch {
-      }
-
-      const call = mockFetch.mock.calls[0];
-      const body = JSON.parse(call[1].body);
-      expect(body.width).toBeUndefined();
-      expect(body.height).toBeUndefined();
-      expect(body.style).toBeUndefined();
-      expect(body.model).toBe("image-01-live");
+        )
+      ).rejects.toThrow("width/height");
     });
 
     it("should silently ignore style for image-01 model", async () => {
@@ -313,6 +313,44 @@ describe("MiniMax Image Generation", () => {
           "test-key"
         )
       ).rejects.toThrow("count must be an integer between 1 and 9");
+    });
+
+    it("should throw when style_weight is 0 (must be in (0, 1])", async () => {
+      await expect(
+        generateImage(
+          { prompt: "test" },
+          { model: "image-01-live", style: "漫画", styleWeight: 0 },
+          "test-key"
+        )
+      ).rejects.toThrow("style_weight must be in the range (0, 1]");
+    });
+
+    it("should throw when style_weight exceeds 1 (must be in (0, 1])", async () => {
+      await expect(
+        generateImage(
+          { prompt: "test" },
+          { model: "image-01-live", style: "漫画", styleWeight: 1.01 },
+          "test-key"
+        )
+      ).rejects.toThrow("style_weight must be in the range (0, 1]");
+    });
+
+    it("should accept style_weight = 1 (boundary valid)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_base64: ["SGVsbG8gV29ybGQ="] } }),
+      });
+      try {
+        await generateImage(
+          { prompt: "test" },
+          { model: "image-01-live", style: "漫画", styleWeight: 1 },
+          "test-key"
+        );
+      } catch {
+      }
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.style).toEqual({ style_type: "漫画", style_weight: 1 });
     });
 
     it("should throw when size is provided", async () => {
@@ -386,6 +424,80 @@ describe("MiniMax Image Generation", () => {
       const body = JSON.parse(call[1].body);
       expect(body.width).toBe(1024);
       expect(body.height).toBe(1024);
+    });
+  });
+
+  describe("generateImage - image-01-live aspect_ratio and dimension rules", () => {
+    it("should include aspect_ratio in body for image-01-live when req.aspectRatio is set to 16:9", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_urls: [] } }),
+      });
+
+      try {
+        await generateImage(
+          { prompt: "a portrait", aspectRatio: "16:9" },
+          { model: "image-01-live" },
+          "test-key"
+        );
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.model).toBe("image-01-live");
+      expect(body.aspect_ratio).toBe("16:9");
+    });
+
+    it("should throw when image-01-live uses aspect_ratio 21:9 (only supported for image-01)", async () => {
+      await expect(
+        generateImage(
+          { prompt: "a portrait", aspectRatio: "21:9" },
+          { model: "image-01-live" },
+          "test-key"
+        )
+      ).rejects.toThrow("21:9");
+    });
+
+    it("should throw when image-01-live uses width/height (only supported for image-01)", async () => {
+      await expect(
+        generateImage(
+          { prompt: "a portrait" },
+          { model: "image-01-live", width: 1024, height: 1024 },
+          "test-key"
+        )
+      ).rejects.toThrow("width/height");
+    });
+
+    it("should throw when image-01-live config aspectRatio is 21:9", async () => {
+      await expect(
+        generateImage(
+          { prompt: "a portrait" },
+          { model: "image-01-live", aspectRatio: "21:9" },
+          "test-key"
+        )
+      ).rejects.toThrow("21:9");
+    });
+
+    it("should not set aspect_ratio in body for image-01-live when neither req nor config specifies it (API defaults to 1:1)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: { image_urls: [] } }),
+      });
+
+      try {
+        await generateImage(
+          { prompt: "a portrait" },
+          { model: "image-01-live" },
+          "test-key"
+        );
+      } catch {
+      }
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body);
+      expect(body.model).toBe("image-01-live");
+      expect(body.aspect_ratio).toBeUndefined();
     });
   });
 
@@ -823,10 +935,11 @@ describe("MiniMax Image Generation", () => {
       expect(CAPABILITIES.generate.supportsAspectRatio).toBe(true);
     });
 
-    it("should have edit enabled with resolution and aspect ratio support", () => {
+    it("should have edit enabled with aspect ratio support and no resolution (MiniMax uses aspect_ratio, not resolution)", () => {
       expect(CAPABILITIES.edit.enabled).toBe(true);
-      expect(CAPABILITIES.edit.supportsResolution).toBe(true);
+      expect(CAPABILITIES.edit.supportsResolution).toBe(false);
       expect(CAPABILITIES.edit.supportsAspectRatio).toBe(true);
+      expect(CAPABILITIES.edit.maxInputImages).toBe(1);
     });
 
     it("should have correct aspect ratios", () => {

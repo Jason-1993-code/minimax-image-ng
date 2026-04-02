@@ -152,6 +152,10 @@ export function resolveApiKey(
     return process.env.MINIMAX_IMAGE_API_KEY;
   }
 
+  if (process.env.MINIMAX_API_KEY) {
+    return process.env.MINIMAX_API_KEY;
+  }
+
   if (configApiKey) {
     return configApiKey;
   }
@@ -190,8 +194,9 @@ export const CAPABILITIES: {
   },
   edit: {
     enabled: true,
-    supportsResolution: true,
+    supportsResolution: false,
     supportsAspectRatio: true,
+    maxInputImages: 1,
   },
   geometry: {
     aspectRatios: ["1:1", "16:9", "4:3", "3:2", "2:3", "3:4", "9:16", "21:9"],
@@ -264,19 +269,23 @@ export async function generateImage(
 
   const resolvedApiKey = resolveApiKey(apiKey, req.cfg, req.authStore, req.agentDir);
   if (!resolvedApiKey) {
-    const keySource = process.env.MINIMAX_IMAGE_API_KEY
-      ? "env"
-      : apiKey
-        ? "config"
-        : req.authStore
-          ? "auth profile"
-          : "none";
+    const hasImageKey = Boolean(process.env.MINIMAX_IMAGE_API_KEY);
+    const hasSharedKey = Boolean(process.env.MINIMAX_API_KEY);
+    const keySource = hasImageKey
+      ? "MINIMAX_IMAGE_API_KEY (env)"
+      : hasSharedKey
+        ? "MINIMAX_API_KEY (env)"
+        : apiKey
+          ? "config"
+          : req.authStore
+            ? "auth profile"
+            : "none";
     const ctxParts = [
       `source=${keySource}`,
       req.agentDir ? `agentDir=${req.agentDir}` : null,
     ].filter(Boolean).join(", ");
     throw new Error(
-      `MiniMax API key not found. Set MINIMAX_IMAGE_API_KEY environment variable. (context: ${ctxParts})`
+      `MiniMax API key not found. Set MINIMAX_IMAGE_API_KEY or MINIMAX_API_KEY environment variable. (context: ${ctxParts})`
     );
   }
 
@@ -287,9 +296,7 @@ export async function generateImage(
 
   if (effectiveModel === "image-01-live") {
     if (miniConfig.width || miniConfig.height) {
-      if (miniConfig.style) {
-        throw new Error("width/height and style cannot both be set for image-01-live model");
-      }
+      throw new Error("width/height are only supported for image-01 model, not image-01-live");
     }
   }
 
@@ -313,6 +320,12 @@ export async function generateImage(
 
   if (miniConfig.n < 1 || miniConfig.n > 9 || !Number.isInteger(miniConfig.n)) {
     throw new Error("n must be an integer between 1 and 9");
+  }
+
+  if (miniConfig.styleWeight !== undefined) {
+    if (miniConfig.styleWeight <= 0 || miniConfig.styleWeight > 1) {
+      throw new Error("style_weight must be in the range (0, 1]");
+    }
   }
 
   if (req.count !== undefined) {
@@ -342,6 +355,15 @@ export async function generateImage(
       body.height = miniConfig.height;
     } else {
       body.aspect_ratio = miniConfig.aspectRatio;
+    }
+  }
+
+  if (effectiveModel === "image-01-live") {
+    if (req.aspectRatio === "21:9" || miniConfig.aspectRatio === "21:9") {
+      throw new Error("aspect_ratio '21:9' is only supported for image-01 model, not image-01-live");
+    }
+    if (req.aspectRatio) {
+      body.aspect_ratio = req.aspectRatio;
     }
   }
 

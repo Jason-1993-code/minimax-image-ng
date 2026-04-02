@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-**插件名称**: `@openclaw/minimax-image`  
+**插件名称**: `@openclaw/minimax-image-ng`  
 **功能**: 将 MiniMax 文生图 API 接入 OpenClaw，作为原生 `image_generate` 工具 provider  
 **端点支持**: Global (`api.minimax.io`) / CN (`api.minimaxi.com`)
 
@@ -11,16 +11,17 @@
 ## 目录结构
 
 ```
-minimax-image/
+minimax-image-ng/
 ├── DEVELOPMENT.md          # 本文档（开发流程、回滚步骤）
-├── README.md              # 用户使用说明（测完后补充）
+├── README.md              # 用户使用说明
+├── README_CN.md           # 中文使用说明
 ├── package.json           # npm 包配置
 ├── openclaw.plugin.json   # 插件 manifest（插件标识、认证、配置schema）
 ├── tsconfig.json          # TypeScript 配置
 ├── src/
-│   ├── index.ts           # 插件入口，registerPlugin
+│   ├── index.ts           # 插件入口，registerImageGenerationProvider
 │   └── image-generation.ts # MiniMax 图生图 API 封装
-└── test/
+└── src/
     └── image-generation.test.ts  # 单元测试
 ```
 
@@ -39,7 +40,7 @@ minimax-image/
 
 - Bearer Token（API Key）
 - Header: `Authorization: Bearer <token>`
-- 优先级：环境变量 `MINIMAX_IMAGE_API_KEY` > config.apiKey
+- 优先级：`MINIMAX_IMAGE_API_KEY` > `MINIMAX_API_KEY` > config.apiKey > auth profile
 
 ### 主要接口
 
@@ -79,10 +80,10 @@ Response:
 |-------------|------|
 | 0 | 成功 |
 | 1002 | 限流 |
-| 1004 | 参数错误 |
+| 1004 | 账号鉴权失败，请检查 API-Key 是否填写正确 |
 | 1008 | 余额不足 |
 | 1026 | 内容违规 |
-| 2013 | 认证失败 |
+| 2013 | 传入参数异常，请检查入参是否按要求填写 |
 | 2049 | 内容审核拦截 |
 
 ---
@@ -91,22 +92,21 @@ Response:
 
 ```json
 {
-  "id": "minimax-image",
-  "kind": "provider",
-  "name": "MiniMax Image",
-  "description": "MiniMax image generation provider (text-to-image)",
-  "version": "1.0.0",
-  "providers": ["minimax-image"],
+  "id": "minimax-image-ng",
+  "name": "MiniMax Image NG",
+  "description": "MiniMax image generation provider (text-to-image and image-to-image)",
+  "version": "1.2.0",
+  "providers": ["minimax-image-ng"],
   "providerAuthEnvVars": {
-    "minimax-image": ["MINIMAX_IMAGE_API_KEY"]
+    "minimax-image-ng": ["MINIMAX_IMAGE_API_KEY", "MINIMAX_API_KEY"]
   },
   "providerAuthChoices": [
     {
-      "provider": "minimax-image",
+      "provider": "minimax-image-ng",
       "method": "api-key",
       "choiceId": "minimax-image-global",
       "choiceLabel": "MiniMax Image (Global)",
-      "groupId": "minimax-image",
+      "groupId": "minimax-image-ng",
       "groupLabel": "MiniMax Image",
       "optionKey": "minimaxImageGlobalApiKey",
       "cliFlag": "--minimax-image-global-api-key",
@@ -115,11 +115,11 @@ Response:
       "onboardingScopes": ["image-generation"]
     },
     {
-      "provider": "minimax-image",
+      "provider": "minimax-image-ng",
       "method": "api-key",
       "choiceId": "minimax-image-cn",
       "choiceLabel": "MiniMax Image (CN)",
-      "groupId": "minimax-image",
+      "groupId": "minimax-image-ng",
       "groupLabel": "MiniMax Image",
       "optionKey": "minimaxImageCnApiKey",
       "cliFlag": "--minimax-image-cn-api-key",

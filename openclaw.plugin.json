@@ -91,10 +91,10 @@
       },
       "styleWeight": {
         "type": "number",
-        "minimum": 0,
+        "exclusiveMinimum": 0,
         "maximum": 1,
         "default": 0.8,
-        "description": "Style weight (only for image-01-live, 0-1)"
+        "description": "Style weight (only for image-01-live, (0, 1])"
       },
       "width": {
         "type": "integer",

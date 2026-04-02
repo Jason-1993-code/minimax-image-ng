@@ -228,10 +228,10 @@ console.log(result.images[0].buffer);
 |------|---------|
 | 0 | Success |
 | 1002 | Rate limit exceeded |
-| 1004 | Invalid parameters or authentication failure |
+| 1004 | Authentication failed (invalid or missing API key) |
 | 1008 | Insufficient account balance |
 | 1026 | Content violates policy |
-| 2013 | Authentication failure |
+| 2013 | Invalid parameters (check request format) |
 | 2049 | Content moderation blocked |
 
 ## API Endpoints
