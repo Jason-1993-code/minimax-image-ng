@@ -250,6 +250,45 @@ The plugin searches for API keys in the following order:
 3. Plugin config `plugins.entries.minimax-image-ng.config.apiKey`
 4. OpenClaw Auth Profile `minimax-image-ng` API Key credential
 
+## Differences from Built-in minimax Plugin
+
+OpenClaw (v1.4+) includes a built-in `minimax` image generation Provider, but its functionality is limited for advanced users.
+
+### Feature Comparison
+
+| Feature | Built-in `minimax` | `minimax-image-ng` |
+|---------|-------------------|-------------------|
+| image-01 model | ✅ Supported | ✅ Supported |
+| image-01-live model | ❌ Not supported | ✅ Supported |
+| style parameter (portrait/general/cinematic/etc.) | ❌ Not supported | ✅ Supported |
+| Custom width/height | ❌ Not supported | ✅ Supported |
+| aspect_ratio presets | ⚠️ Partial | ✅ Full support |
+| Prompt optimizer | ❌ Not supported | ✅ Supported |
+| AIGC watermark | ❌ Not supported | ✅ Supported |
+| Image-to-image (I2I) | ⚠️ Basic only | ✅ Full support |
+
+### When to Use Each
+
+**Use built-in `minimax`**:
+- Only need basic text-to-image generation
+- image-01 model meets your requirements
+- Prefer minimal plugins
+
+**Use `minimax-image-ng`**:
+- Need `image-01-live` model (better for portrait photography)
+- Need style parameter to control style (portrait/general/cinematic/travel/etc.)
+- Need custom image dimensions instead of fixed aspect ratios
+- Need image-to-image (I2I) functionality
+
+### Coexistence
+
+Both plugins can be installed simultaneously without conflict:
+
+- Built-in `minimax` Provider ID: `minimax`
+- This plugin Provider ID: `minimax-image-ng`
+
+Use `imageGenerationModel` config to choose which plugin generates images.
+
 ## Relationship with minimax-portal
 
 | | minimax-image-ng (this plugin) | minimax-portal (built-in) |

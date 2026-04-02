@@ -250,6 +250,45 @@ console.log(result.images[0].buffer);
 3. 插件配置 `plugins.entries.minimax-image-ng.config.apiKey`
 4. OpenClaw Auth Profile 中的 `minimax-image-ng` API Key 凭证
 
+## 与内置 minimax 插件的差异
+
+OpenClaw（v1.4+）内置了 `minimax` 图像生成 Provider，但对于高级用户而言功能较为有限。
+
+### 功能对比
+
+| 功能 | 内置 `minimax` | `minimax-image-ng` |
+|------|---------------|-------------------|
+| image-01 模型 | ✅ 支持 | ✅ 支持 |
+| image-01-live 模型 | ❌ 不支持 | ✅ 支持 |
+| style 参数（人像/通用/影视等） | ❌ 不支持 | ✅ 支持 |
+| 自定义 width/height | ❌ 不支持 | ✅ 支持 |
+| aspect_ratio 预设比例 | ⚠️ 部分支持 | ✅ 全部支持 |
+| 提示词优化器 | ❌ 不支持 | ✅ 支持 |
+| AIGC 水印嵌入 | ❌ 不支持 | ✅ 支持 |
+| 图生图 (I2I) | ⚠️ 仅基础功能 | ✅ 完全支持 |
+
+### 使用场景
+
+**选择内置 `minimax`**：
+- 仅需要基础的文生图功能
+- 使用 image-01 模型即可满足需求
+- 希望插件数量最少化
+
+**选择 `minimax-image-ng`**：
+- 需要 `image-01-live` 模型（更适合人像摄影）
+- 需要 style 参数控制风格（人像/通用/影视/旅行等）
+- 需要自定义图片尺寸而非固定比例
+- 需要图生图功能
+
+### 共存说明
+
+两个插件可以同时安装、互不冲突：
+
+- 内置 `minimax` Provider ID：`minimax`
+- 本插件 Provider ID：`minimax-image-ng`
+
+通过 `imageGenerationModel` 配置选择使用哪个插件生成图像。
+
 ## 与 minimax-portal 的关系
 
 | | minimax-image-ng（本插件） | minimax-portal（内置） |
