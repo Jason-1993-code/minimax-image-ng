@@ -2,7 +2,7 @@
   "id": "minimax-image-ng",
   "name": "MiniMax Image",
   "description": "MiniMax image generation provider (text-to-image and image-to-image)",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "providers": ["minimax-image-ng"],
   "providerAuthEnvVars": {
     "minimax-image-ng": ["MINIMAX_IMAGE_API_KEY", "MINIMAX_API_KEY"]

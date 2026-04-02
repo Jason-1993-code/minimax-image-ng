@@ -31,7 +31,7 @@ openclaw plugins install @openclaw/minimax-image-ng
 从 [GitHub Releases](https://github.com/Jason-1993-code/minimax-image-ng/releases) 下载安装包，使用本地路径安装：
 
 ```bash
-openclaw plugins install https://github.com/Jason-1993-code/minimax-image-ng/releases/download/v1.2.0/minimax-image-ng-1.2.0.zip
+openclaw plugins install https://github.com/Jason-1993-code/minimax-image-ng/releases/download/v1.2.1/minimax-image-ng-v1.2.1.zip
 ```
 
 安装后验证：
@@ -170,10 +170,12 @@ openclaw gateway restart
 
 ### 模型专属参数
 
-- **image-01**：支持 `width`、`height`（512-2048，8 的倍数）、`seed`
-- **image-01-live**：支持 `style`、`seed`
+- **image-01**：支持 `aspectRatio`、`width`、`height`（512-2048，8 的倍数）、`seed`
+- **image-01-live**：支持 `aspectRatio`、`style`、`seed`（不支持 `21:9`）
 
-当同时传入 `aspect_ratio` 和 `width/height` 时，`aspect_ratio` 优先生效。
+当请求未显式传入 `aspectRatio` 时，插件会使用 `config.aspectRatio`（默认 `1:1`）并应用到两个模型。
+
+当同时传入 `aspectRatio` 和 `width/height` 时，`aspectRatio` 优先生效。
 
 ## 使用方式
 

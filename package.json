@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/minimax-image-ng",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "MiniMax image generation provider for OpenClaw",
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +11,9 @@
     "dev": "tsc --watch"
   },
   "openclaw": {
-    "extensions": ["./dist/index.js"]
+    "extensions": [
+      "./dist/index.js"
+    ]
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

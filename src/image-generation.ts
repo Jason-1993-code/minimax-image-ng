@@ -364,6 +364,8 @@ export async function generateImage(
     }
     if (req.aspectRatio) {
       body.aspect_ratio = req.aspectRatio;
+    } else {
+      body.aspect_ratio = miniConfig.aspectRatio;
     }
   }
 

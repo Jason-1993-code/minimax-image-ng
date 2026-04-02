@@ -31,7 +31,7 @@ openclaw plugins install @openclaw/minimax-image-ng
 Download the plugin package from [GitHub Releases](https://github.com/Jason-1993-code/minimax-image-ng/releases) and install via local path:
 
 ```bash
-openclaw plugins install https://github.com/Jason-1993-code/minimax-image-ng/releases/download/v1.2.0/minimax-image-ng-1.2.0.zip
+openclaw plugins install https://github.com/Jason-1993-code/minimax-image-ng/releases/download/v1.2.1/minimax-image-ng-v1.2.1.zip
 ```
 
 Verify installation:
@@ -170,10 +170,12 @@ openclaw gateway restart
 
 ### Model-Specific Parameters
 
-- **image-01**: supports `width`, `height` (512-2048, multiples of 8), `seed`
-- **image-01-live**: supports `style`, `seed`
+- **image-01**: supports `aspectRatio`, `width`, `height` (512-2048, multiples of 8), `seed`
+- **image-01-live**: supports `aspectRatio`, `style`, `seed` (`21:9` is not supported)
 
-When both `aspect_ratio` and `width/height` are provided, `aspect_ratio` takes priority.
+If request-level `aspectRatio` is not provided, the plugin uses `config.aspectRatio` (default `1:1`) for both models.
+
+When both `aspectRatio` and `width/height` are provided, `aspectRatio` takes priority.
 
 ## Usage
 

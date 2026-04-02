@@ -173,7 +173,7 @@ describe("MiniMax Image Generation", () => {
       expect(body.aspect_ratio).toBe("16:9");
     });
 
-    it("should not set aspect_ratio for image-01-live with I2I", async () => {
+    it("should set default aspect_ratio for image-01-live with I2I", async () => {
       const pngHeader = Buffer.from([
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
         0x00, 0x00, 0x00, 0x0D,
@@ -199,7 +199,7 @@ describe("MiniMax Image Generation", () => {
 
       const call = mockFetch.mock.calls[0];
       const body = JSON.parse(call[1].body);
-      expect(body.aspect_ratio).toBeUndefined();
+      expect(body.aspect_ratio).toBe("1:1");
       expect(body.subject_reference).toBeDefined();
       expect(body.model).toBe("image-01-live");
     });
@@ -479,7 +479,7 @@ describe("MiniMax Image Generation", () => {
       ).rejects.toThrow("21:9");
     });
 
-    it("should not set aspect_ratio in body for image-01-live when neither req nor config specifies it (API defaults to 1:1)", async () => {
+    it("should set default aspect_ratio in body for image-01-live when req.aspectRatio is not provided", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: { image_urls: [] } }),
@@ -497,7 +497,7 @@ describe("MiniMax Image Generation", () => {
       const call = mockFetch.mock.calls[0];
       const body = JSON.parse(call[1].body);
       expect(body.model).toBe("image-01-live");
-      expect(body.aspect_ratio).toBeUndefined();
+      expect(body.aspect_ratio).toBe("1:1");
     });
   });
 
