@@ -10,9 +10,6 @@ dist/
 *.swo
 *~
 
-# Lock files
-package-lock.json
-
 # Session files
 session-ses_*.md
 
